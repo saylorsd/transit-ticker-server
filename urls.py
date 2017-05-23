@@ -20,7 +20,10 @@ from . import views
 
 urlpatterns = [
     url(r'^$', views.index, name='index'),
+
     url(r'^ticker/$', views.get_tickers, name='tickers'),
-    url(r'^ticker/(?P<ticker_id>[a-zA-Z0-9_]*)$', views.get_ticker, name='ticke0r'),
+    url(r'^ticker/(?P<ticker_id>[a-zA-Z0-9_]*)$', views.get_ticker, name='ticker'),
+
+    url(r'^message/(?P<ticker_id>[a-zA-Z0-9_]*)$', views.get_message, name='message'),
 
 ]

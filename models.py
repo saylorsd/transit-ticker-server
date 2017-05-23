@@ -1,4 +1,5 @@
 from django.db import models
+from .settings import DEFAULT_BRIGHTNESS, DEFAULT_SPEED, DEFAULT_WIDTH
 
 DIRECTIONS = (
     ('INBOUND', 'Inbound'),
@@ -17,6 +18,15 @@ class TickerStation(models.Model):
     # Location information
     latitude = models.FloatField()
     longitude = models.FloatField()
+
+    # Ticker state parameters
+    width = models.IntegerField("Width (in 8x8 matrices)", default=DEFAULT_WIDTH)
+    brightness = models.FloatField(default=DEFAULT_BRIGHTNESS)
+    speed = models.FloatField(default=DEFAULT_SPEED)
+
+    # Status of ticker
+    last_message = models.CharField(max_length=1000, editable=False)
+    status = models.CharField(max_length=400, editable=False)
 
     notes = models.TextField(blank=True)
 

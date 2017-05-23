@@ -3,6 +3,8 @@ from .models import TickerStation, Prediction
 from django.http import HttpResponse, JsonResponse
 from django.forms.models import model_to_dict
 
+from .utils import generate_message
+
 def index(request):
     pass
 
@@ -35,12 +37,38 @@ def get_ticker(request, ticker_id=""):
         resp = {'success': False, 'results': {}, 'help': 'Ticker ({}) not found.'.format(ticker_id)}
 
 
+
     return JsonResponse(resp)
 
+def get_message(request, ticker_id=""):
+    '''
+    Returns message for a particular ticker
 
-def get_message(request, ticker_id):
-    pass
+    :param request: http request
+    :param ticker_id: string - id of ticker
+    :return: JsonResponse - containing message
+    '''
+    success = False
+    message = status_msg = ""
+    status_code = 400
 
-def get_status(request, ticker_id):
-    pass
+    try:
+        # get ticker - will raise NotFoundError if bad ticker_id
+        ticker = TickerStation.objects.get(pk=ticker_id)
+
+        # get message and/or status
+        message, status_msg = generate_message(ticker)
+        # TODO: get brightness, speed etc
+        status_code = 200
+        success = True
+
+        # update status
+        ticker.status = status_msg
+        ticker.save()
+
+    finally:
+        response = {'success': success, 'message': message, 'status': status_msg}
+        return JsonResponse(response, status=status_code)
+
+
 

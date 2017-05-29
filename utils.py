@@ -42,6 +42,8 @@ def generate_message(ticker):
                     if len(returned_prediction):
                         arrival = dt.strptime(returned_prediction.findall('prdtm')[0].text, "%Y%m%d %H:%M")
                         time = arrival - dt.now()
+                        if message in (ERROR_MESSAGE, NO_PREDICTION_MESSAGE):
+                            message = ""
                         message += "{}: {} ({:.0f}mins) {}".format(prediction.route, arrival.strftime('%H:%M'),
                                                                    (time.seconds / 60), SEPARATOR)
                         status = "OK"

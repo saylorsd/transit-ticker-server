@@ -37,10 +37,10 @@ def generate_message(ticker):
 
                 # if no errors
                 if not results.findall('error'):
-                    prediction = results.findall('prd')[0]  # per API: first prediction result == next arrival
+                    returned_prediction = results.findall('prd')[0]  # per API: first prediction result == next arrival
 
-                    if len(prediction):
-                        arrival = dt.strptime(prediction.findall('prdtm')[0].text, "%Y%m%d %H:%M")
+                    if len(returned_prediction):
+                        arrival = dt.strptime(returned_prediction.findall('prdtm')[0].text, "%Y%m%d %H:%M")
                         time = arrival - dt.now()
                         message += "{}: {} ({:.0f}mins) | ".format(prediction.route, arrival.strftime('%H:%M'),
                                                                    (time.seconds / 60))

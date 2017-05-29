@@ -1,5 +1,5 @@
 from .models import TickerStation, Prediction
-from .settings import API_KEY, API_URL
+from .settings import API_KEY, API_URL, SEPARATOR
 
 import requests
 import xml.etree.ElementTree as ET
@@ -42,8 +42,8 @@ def generate_message(ticker):
                     if len(returned_prediction):
                         arrival = dt.strptime(returned_prediction.findall('prdtm')[0].text, "%Y%m%d %H:%M")
                         time = arrival - dt.now()
-                        message += "{}: {} ({:.0f}mins) | ".format(prediction.route, arrival.strftime('%H:%M'),
-                                                                   (time.seconds / 60))
+                        message += "{}: {} ({:.0f}mins) {}".format(prediction.route, arrival.strftime('%H:%M'),
+                                                                   (time.seconds / 60), SEPARATOR)
                         status = "OK"
                     else:
                         # no predictions often means that a bus isn't coming in the next 30 minutes

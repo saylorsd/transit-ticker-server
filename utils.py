@@ -7,7 +7,7 @@ from datetime import datetime as dt, timedelta
 from django.utils import timezone
 
 ERROR_MESSAGE = "This ticker is experiencing technical difficulties.  Please tweet us to let us know! @twitterhandle"
-NO_PREDICTION_MESSAGE =  "Zero buses predicted for {route} within next 30 minutes."
+NO_PREDICTION_MESSAGE =  "{route}: Too far to predict arrival (>30 mins)"
 
 statuses = {0: 'OK', 10: 'WARNING', 11: "WARNING NO PREDICTION", 20: 'ERROR'}
 

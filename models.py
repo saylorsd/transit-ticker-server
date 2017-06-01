@@ -26,6 +26,7 @@ class TickerStation(models.Model):
 
     # Status of ticker
     last_message = models.CharField(max_length=1000, editable=False)
+    last_check = models.DateTimeField()
     status = models.CharField(max_length=400, editable=False)
 
     notes = models.TextField(blank=True)

@@ -4,64 +4,94 @@ from .settings import API_KEY, API_URL, SEPARATOR
 import requests
 import xml.etree.ElementTree as ET
 from datetime import datetime as dt, timedelta
+from django.utils import timezone
 
 ERROR_MESSAGE = "This ticker is experiencing technical difficulties.  Please tweet us to let us know! @twitterhandle"
 NO_PREDICTION_MESSAGE =  "Zero buses predicted for {route} within next 30 minutes."
 
+statuses = {0: 'OK', 10: 'WARNING', 11: "WARNING NO PREDICTION", 20: 'ERROR'}
+
+def get_prediction(prediction):
+    message, status = "", 20
+    # TrueTime request parameters
+    params = {
+        'key': API_KEY,
+        'stpid': prediction.stop_id,
+        'rt': prediction.route,
+        'dir': prediction.direction,
+    }
+
+    # make request to TrueTime API
+    response = requests.get(API_URL, params=params)
+
+    if response.status_code == 200:
+
+        results = ET.fromstring(response.text)  # parse the XML response into an ElementTree
+
+        # if no errors
+        if not results.findall('error'):
+            returned_prediction = results.findall('prd')[0]  # per API: first prediction result == next arrival
+
+            if len(returned_prediction):
+                arrival = dt.strptime(returned_prediction.findall('prdtm')[0].text, "%Y%m%d %H:%M")
+                time = arrival - dt.now()
+                if message in (ERROR_MESSAGE, NO_PREDICTION_MESSAGE):
+                    message = ""
+                message = "{}: {} ({:.0f}mins)".format(prediction.route, arrival.strftime('%H:%M'),
+                                                           (time.seconds / 60))
+                status = 0
+            else:
+                # no predictions often means that a bus isn't coming in the next 30 minutes
+                message = NO_PREDICTION_MESSAGE.format(reoute=prediction.route)
+                status = 11
+
+        else:
+            # Errors from PAT End
+            if not message:
+                message = NO_PREDICTION_MESSAGE.format(route=prediction.route)
+                status = 11
+    else:
+        # HTTP RESPONSE
+        if not message:
+            message = ERROR_MESSAGE
+            status = 20
+
+    return message, status
+
 def generate_message(ticker):
     # TODO: use redis as message cache
-    message = ''
-    status = 'ERROR'
+    ticker_id = ticker.id
+    predictions = Prediction.objects.filter(ticker=ticker_id)
+    messages = []
+    final_status = 0
+    all_bad = True
+    for prediction in predictions:
+        msg, status = get_prediction(prediction)
 
-    try:
-        ticker_id = ticker.id
-        predictions = Prediction.objects.filter(ticker=ticker_id)
+        if status < 20:
+            all_bad = False
+            messages.append(msg)
 
-        for prediction in predictions:
+        if status > final_status:
+            final_status = status
 
-            # TrueTime request parameters
-            params = {
-                'key': API_KEY,
-                'stpid': prediction.stop_id,
-                'rt': prediction.route,
-                'dir': prediction.direction,
-            }
+    if not all_bad:
+        return SEPARATOR.join(messages) + SEPARATOR, statuses[final_status]
+    else:
+        return ERROR_MESSAGE, statuses[20]
 
-            # make request to TrueTime API
-            response = requests.get(API_URL, params=params)
 
-            if response.status_code == 200:
-                # make a ticker message
 
-                results = ET.fromstring(response.text)      # parse the XML response into an ElementTree
 
-                # if no errors
-                if not results.findall('error'):
-                    returned_prediction = results.findall('prd')[0]  # per API: first prediction result == next arrival
+def collect_message(ticker):
+    last_ran = ticker.last_check
+    duration = timezone.localtime() - timezone.localtime(last_ran)
 
-                    if len(returned_prediction):
-                        arrival = dt.strptime(returned_prediction.findall('prdtm')[0].text, "%Y%m%d %H:%M")
-                        time = arrival - dt.now()
-                        if message in (ERROR_MESSAGE, NO_PREDICTION_MESSAGE):
-                            message = ""
-                        message += "{}: {} ({:.0f}mins) {}".format(prediction.route, arrival.strftime('%H:%M'),
-                                                                   (time.seconds / 60), SEPARATOR)
-                        status = "OK"
-                    else:
-                        # no predictions often means that a bus isn't coming in the next 30 minutes
-                        message += NO_PREDICTION_MESSAGE.format(prediction.route)
-                        status = "WARNING - NO PREDICTION"
+    if duration < timezone.timedelta(seconds=45):
+        return ticker.last_message, "OK (cached msg)"
+    else:
+        ticker.last_check=timezone.localtime()
+        ticker.save()
 
-                else:
-                    # Errors from PAT End
-                    if not message:
-                        message = ERROR_MESSAGE
-                        status = "ERROR - RESULT ({})".format(results.findall('error')[0].findall('msg')[0].text)
-            else:
-                # HTTP RESPONSE
-                if not message:
-                    message =  ERROR_MESSAGE
-                    status = "ERROR - HTTP ({})".format(str(response.status_code))
+        return generate_message(ticker)
 
-    finally:
-        return message, status

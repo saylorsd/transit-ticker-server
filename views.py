@@ -3,7 +3,9 @@ from .models import TickerStation, Prediction
 from django.http import HttpResponse, JsonResponse
 from django.forms.models import model_to_dict
 
-from .utils import generate_message
+from .utils import collect_message
+from django.utils import timezone
+
 
 def index(request):
     pass
@@ -57,13 +59,14 @@ def get_message(request, ticker_id=""):
         ticker = TickerStation.objects.get(pk=ticker_id)
 
         # get message and/or status
-        message, status_msg = generate_message(ticker)
+        message, status_msg = collect_message(ticker)
         # TODO: get brightness, speed etc
         status_code = 200
         success = True
 
         # update status
         ticker.status = status_msg
+        ticker.last_message = message
         ticker.save()
 
     finally:

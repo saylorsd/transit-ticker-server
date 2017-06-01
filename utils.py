@@ -36,11 +36,13 @@ def get_prediction(prediction):
 
             if len(returned_prediction):
                 arrival = dt.strptime(returned_prediction.findall('prdtm')[0].text, "%Y%m%d %H:%M")
-                time = arrival - dt.now()
+                time_left = arrival - dt.now() if arrival > dt.now() else timedelta(seconds=0)
                 if message in (ERROR_MESSAGE, NO_PREDICTION_MESSAGE):
                     message = ""
+                minutes_left = (time_left.seconds / 60)
+
                 message = "{}({}): {} ({:.0f}mins)".format(prediction.route, dir, arrival.strftime('%H:%M'),
-                                                           (time.seconds / 60))
+                                                           minutes_left)
                 status = 0
             else:
                 # no predictions often means that a bus isn't coming in the next 30 minutes

@@ -7,11 +7,13 @@ from datetime import datetime as dt, timedelta
 from django.utils import timezone
 
 ERROR_MESSAGE = "This ticker is experiencing technical difficulties.  Please tweet us to let us know! @twitterhandle"
-NO_PREDICTION_MESSAGE =  "{route}: Too far to predict arrival (>30 mins)"
+NO_PREDICTION_MESSAGE =  "{route}({dir}): Too far to predict arrival (>30 mins)"
 
 statuses = {0: 'OK', 10: 'WARNING', 11: "WARNING NO PREDICTION", 20: 'ERROR'}
 
 def get_prediction(prediction):
+    dir = "IN" if prediction.direction[0] == 'I' else "OUT"
+
     message, status = "", 20
     # TrueTime request parameters
     params = {
@@ -34,21 +36,23 @@ def get_prediction(prediction):
 
             if len(returned_prediction):
                 arrival = dt.strptime(returned_prediction.findall('prdtm')[0].text, "%Y%m%d %H:%M")
-                time = arrival - dt.now()
+                time_left = arrival - dt.now() if arrival > dt.now() else timedelta(seconds=0)
                 if message in (ERROR_MESSAGE, NO_PREDICTION_MESSAGE):
                     message = ""
-                message = "{}: {} ({:.0f}mins)".format(prediction.route, arrival.strftime('%H:%M'),
-                                                           (time.seconds / 60))
+                minutes_left = (time_left.seconds / 60)
+
+                message = "{}({}): {} ({:.0f}mins)".format(prediction.route, dir, arrival.strftime('%H:%M'),
+                                                           minutes_left)
                 status = 0
             else:
                 # no predictions often means that a bus isn't coming in the next 30 minutes
-                message = NO_PREDICTION_MESSAGE.format(reoute=prediction.route)
+                message = NO_PREDICTION_MESSAGE.format(reoute=prediction.route, dir=dir)
                 status = 11
 
         else:
             # Errors from PAT End
             if not message:
-                message = NO_PREDICTION_MESSAGE.format(route=prediction.route)
+                message = NO_PREDICTION_MESSAGE.format(route=prediction.route, dir=dir)
                 status = 11
     else:
         # HTTP RESPONSE

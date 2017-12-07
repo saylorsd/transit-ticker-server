@@ -14,6 +14,13 @@ statuses = {0: 'OK', 10: 'WARNING', 11: "WARNING NO PREDICTION", 20: 'ERROR'}
 def get_prediction(prediction):
     dir = "IN" if prediction.direction[0] == 'I' else "OUT"
 
+    off_time = dt.time(21, 30)
+    on_time = dt.time(23,30)
+    now_time = dt.now().time()
+    
+    if now_time > off_time and now_time < on_time:
+        return '', 11
+    
     message, status = "", 20
     # TrueTime request parameters
     params = {

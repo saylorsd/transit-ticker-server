@@ -54,24 +54,23 @@ def get_message(request, ticker_id=""):
     message = status_msg = ""
     status_code = 400
 
-    try:
-        # get ticker - will raise NotFoundError if bad ticker_id
-        ticker = TickerStation.objects.get(pk=ticker_id)
+    
+    # get ticker - will raise NotFoundError if bad ticker_id
+    ticker = TickerStation.objects.get(pk=ticker_id)
 
-        # get message and/or status
-        message, status_msg = collect_message(ticker)
-        # TODO: get brightness, speed etc
-        status_code = 200
-        success = True
+    # get message and/or status
+    message, status_msg = collect_message(ticker)
+    # TODO: get brightness, speed etc
+    status_code = 200
+    success = True
 
-        # update status
-        ticker.status = status_msg
-        ticker.last_message = message
-        ticker.save()
-
-    finally:
-        response = {'success': success, 'message': message, 'status': status_msg}
-        return JsonResponse(response, status=status_code)
+    # update status
+    ticker.status = status_msg
+    ticker.last_message = message
+    ticker.save()
+    
+    response = {'success': success, 'message': message, 'status': status_msg}
+    return JsonResponse(response, status=status_code)
 
 
 

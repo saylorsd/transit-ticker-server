@@ -3,23 +3,16 @@ from .settings import API_KEY, API_URL, SEPARATOR
 
 import requests
 import xml.etree.ElementTree as ET
-from datetime import datetime as dt, timedelta
+from datetime import datetime as dt, timedelta, time
 from django.utils import timezone
 
 ERROR_MESSAGE = "This ticker is experiencing technical difficulties.  Please tweet us to let us know! @twitterhandle"
 NO_PREDICTION_MESSAGE =  "{route}({dir}): Too far to predict arrival (>30 mins)"
 
-statuses = {0: 'OK', 10: 'WARNING', 11: "WARNING NO PREDICTION", 20: 'ERROR'}
+statuses = {0: 'OK',1: 'OK - DOWNTIME', 10: 'WARNING', 11: "WARNING NO PREDICTION", 20: 'ERROR'}
 
 def get_prediction(prediction):
     dir = "IN" if prediction.direction[0] == 'I' else "OUT"
-
-    off_time = dt.time(21, 30)
-    on_time = dt.time(23,30)
-    now_time = dt.now().time()
-    
-    if now_time > off_time and now_time < on_time:
-        return '', 11
     
     message, status = "", 20
     # TrueTime request parameters
@@ -98,7 +91,16 @@ def collect_message(ticker):
     last_ran = ticker.last_check
     duration = timezone.localtime() - timezone.localtime(last_ran)
 
-    if duration < timezone.timedelta(seconds=45):
+    off_time = time(1, 30)
+    on_time = time(4, 30)
+    now_time = dt.now().time()
+    
+    if now_time > off_time and now_time < on_time:
+        ticker.last_check=timezone.localtime()
+        ticker.save()
+        return '', statuses[1]
+    
+    elif duration < timezone.timedelta(seconds=45):
         return ticker.last_message, "OK (cached msg)"
     else:
         ticker.last_check=timezone.localtime()

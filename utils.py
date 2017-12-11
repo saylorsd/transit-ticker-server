@@ -41,7 +41,7 @@ def get_prediction(prediction):
                     message = ""
                 minutes_left = (time_left.seconds / 60)
 
-                message = "{}({}): {} ({:.0f}mins)".format(prediction.route, dir, arrival.strftime('%H:%M'),
+                message = "{}({}): {} ({:.0f}mins)".format(prediction.route, dir, arrival.strftime('%I:%M'),
                                                            minutes_left)
                 status = 0
             else:
